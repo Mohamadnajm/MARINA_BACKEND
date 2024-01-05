@@ -4,14 +4,95 @@ const User = require("../../models/users/User");
 const Role = require("../../models/roles & permissions/Role");
 
 class UserController {
-
   // Get All Users
   static getUsers = async (req, res) => {
+    const { fullName , search , phone , date , role , startDate , endDate} = req.query;
+    const query = {};
     try {
-      const users = await User.find();
+      if (fullName !== undefined ) {
+        const trimmedSearch = fullName.trim();
+        const [firstNameSearch, lastNameSearch] = trimmedSearch.split(' ');
+  
+        const nameRegex = new RegExp(firstNameSearch, "i");
+        const lastNameRegex = new RegExp(lastNameSearch, "i");
+  
+        query.$or = [
+          {
+            $and: [
+              { firstName: nameRegex },
+              { lastName: lastNameRegex }
+            ]
+          },
+          {
+            $and: [
+              { firstName: lastNameRegex },
+              { lastName: nameRegex }
+            ]
+          }
+        ];
+      }
+ 
+      if (search !== undefined ) {
+        const trimmedSearch = search.trim();
+        const [firstNameSearch, lastNameSearch] = trimmedSearch.split(' ');
+  
+        const nameRegex = new RegExp(firstNameSearch, 'i');
+        const lastNameRegex = new RegExp(lastNameSearch, 'i');
+  
+        query.$or = [
+          {
+            $and: [
+              { firstName: nameRegex },
+              { lastName: lastNameRegex },
+            ],
+          },
+          {
+            $and: [
+              { firstName: lastNameRegex },
+              { lastName: nameRegex },
+            ],
+          },
+          { phone: { $regex: new RegExp(trimmedSearch, 'i') } },
+          
+        ];
+      }
+
+      if (phone !=undefined) {
+        query.phone = { $regex: new RegExp(phone, "i") };
+      }
+
+      if (date !== undefined ) {
+        const parsedDate = new Date(date);
+        const nextDay = new Date(parsedDate);
+        nextDay.setDate(parsedDate.getDate() + 1);
+  
+        query.createdAt = {
+          $gte: parsedDate,
+          $lt: nextDay,  
+        };
+      }
+
+      if (startDate !== undefined && endDate !== undefined) {
+        const parsedStartDate = new Date(startDate);
+        const parsedEndDate = new Date(endDate);
+        parsedEndDate.setDate(parsedEndDate.getDate() + 1); // End date is inclusive
+  
+        query.createdAt = {
+          $gte: parsedStartDate,
+          $lt: parsedEndDate
+        };
+      }
+
+      if (role !== undefined) {
+      query.role = role;
+    }
+    console.log( {fullName , search })
+      
+  
+      const users = await User.find(query).populate("role");
       if (!users) {
         return res
-          .status(HTTP_STATUS.NOT_FOUND )
+          .status(HTTP_STATUS.NOT_FOUND)
           .json({ message: "No user were found" });
       }
       return res.status(HTTP_STATUS.OK).json(users);
@@ -25,7 +106,7 @@ class UserController {
   static getUser = async (req, res) => {
     const { userId } = req.params;
     try {
-      const user = await User.findOne({ _id: userId });
+      const user = await User.findOne({ _id: userId }).populate("role");
       if (!user) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
@@ -38,7 +119,7 @@ class UserController {
     }
   };
 
-  // Toggle Status 
+  // Toggle Status
   static toggleStatus = async (req, res) => {
     const { userId } = req.params;
     try {
@@ -69,7 +150,16 @@ class UserController {
   // Update User
   static updateUser = async (req, res) => {
     const { userId } = req.params;
-    const { userName, email, phone, role, oldPassword, newPassword } = req.body;
+    const {
+      firstName,
+      lastName,
+      userName,
+      email,
+      phone,
+      role,
+      oldPassword,
+      newPassword,
+    } = req.body;
 
     try {
       const user = await User.findOne({ _id: userId });
@@ -93,6 +183,13 @@ class UserController {
         } else {
           user.userName = userName;
         }
+      }
+
+      if (firstName) {
+        user.firstName = firstName;
+      }
+      if (lastName) {
+        user.lastName = lastName;
       }
 
       if (email) {

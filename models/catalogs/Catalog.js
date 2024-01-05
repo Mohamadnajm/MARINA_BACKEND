@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-
 const catalogSchema = mongoose.Schema(
   {
     status: {

@@ -1,3 +1,3 @@
-const AllowedOrigins = ["http://localhost:4000","https://marina-jewelry-new.vercel.app"];
+const AllowedOrigins = ["http://localhost:4000"];
 
 module.exports = AllowedOrigins;

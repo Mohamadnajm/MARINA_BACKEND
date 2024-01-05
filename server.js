@@ -23,6 +23,8 @@ const AuthRoutes = require("./routes/authentication/AuthRoutes");
 const ArticleRoutes = require("./routes/articles/ArticleRoutes");
 const ColorRoutes = require("./routes/colors/ColorRoutes");
 const CatalogRoutes = require("./routes/catalogs/CatalogRoutes");
+const SalesRoutes = require("./routes/sales/SalesRoutes");
+const RoleRoutes = require('./routes/roles/RoleRoutes')
 
 // Enable CORS for specified origins and methods
 const AllowedOrigins = require("./utils/AllowedOrigins");
@@ -44,6 +46,8 @@ const routes = [
   ClientRoutes,
   ColorRoutes,
   CatalogRoutes,
+  SalesRoutes,
+  RoleRoutes
 ];
 
 // Prefix all routes with "/api"

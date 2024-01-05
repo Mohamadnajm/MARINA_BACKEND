@@ -10,8 +10,7 @@ class ArticleController {
 
   // Get All Articles
   static getArticles = async (req, res) => {
-    const { color } = req.query;
-    console.log(color)
+    const { color, catalog, weight, type } = req.query;
 
     const query = {};
     try {
@@ -24,9 +23,25 @@ class ArticleController {
         }
         query.color = selectedColor._id;
       }
+      if (catalog) {
+        const selectedCatalog = await Catalog.findOne({ name: catalog });
+        if (!selectedCatalog) {
+          return res
+            .status(HTTP_STATUS.NOT_FOUND)
+            .json({ message: "Catalog not found" });
+        }
+        query.catalog = selectedCatalog._id;
+      }
+
+      if (type) {
+        query.typeArticle = type;
+      }
+      if (weight) {
+        query.weight = weight;
+      }
       const articles = await Article.find(query).populate(
         "createdBy color supplier catalog"
-      );
+      ).sort({createdAt:-1});
       if (!articles) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
@@ -57,7 +72,7 @@ class ArticleController {
     } catch (error) {
       console.error(error);
       res
-        .status(http.INTERNAL_SERVER_ERROR)
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
         .json({ message: "Internal Server Error" });
     }
   };

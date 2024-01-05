@@ -7,64 +7,45 @@ class CatalogController {
   // Get All Catalogs
   static getCatalogs = async (req, res) => {
     const { search, nombreArticles } = req.query;
-  const query = {};
-
-  try {
-    if (search) {
-      query.name = { $log}
-      query.name =  { $regex: new RegExp(search, "i") };
-      console.log(query)
-      const catalogs = await Catalog.find(query);
-
-      const catalogsWithCount = await Promise.all(
-        catalogs.map(async (catalog) => {
-          const numberArticles = catalog.articles.length;
-          return numberArticles;
-        })
-      );
-        
-      const count = catalogsWithCount.map((e) => e.numberArticles);
-      console.log(count.length);
-
-      // if (nombreArticles && count.includes(nombreArticles)) {
-      //   query.articles = nombreArticles;
-      // }
-    }
-
-    const filteredCatalogs = await Catalog.find(query);
-    // console.log("filteredCatalogs ", filteredCatalogs);
-    res.status(200).json({ catalogs: filteredCatalogs });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-
+    const query = {};
+  
     try {
-      const catalogs = await Catalog.find();
-
+      if (search !=undefined) {
+        query.name = { $regex: new RegExp(search, "i") };
+      }
+  
+      let catalogs = await Catalog.find(query).sort({createdAt : -1});
+  
       if (!catalogs || catalogs.length === 0) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
           .json({ message: "No catalogs were found" });
       }
-
-      // Use Promise.all to wait for all promises to resolve
-      const catalogsWithCount = await Promise.all(
+  
+      catalogs = await Promise.all(
         catalogs.map(async (catalog) => {
           const numberArticles = catalog.articles.length;
           return { ...catalog.toObject(), numberArticles };
         })
       );
-
-      return res.status(HTTP_STATUS.OK).json({ catalogs: catalogsWithCount });
+  
+      if (nombreArticles!=undefined) {
+        const filteredCatalogs = catalogs.filter(
+          (catalog) => catalog.numberArticles === parseInt(nombreArticles)
+        );
+        catalogs = filteredCatalogs;
+      }
+  
+      res.status(HTTP_STATUS.OK).json({ catalogs });
     } catch (error) {
       console.error(error);
-      return res
-        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-        .json({ message: "Internal Server Error" });
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        message: "Internal Server Error",
+      });
     }
- 
-  }
+  };
+  
+  
   // Get One Catalog
   static getCatalog = async (req, res) => {
     const { catalogId } = req.params;
