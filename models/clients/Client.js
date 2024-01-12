@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const clientSchema = new mongoose.Schema(
+  
   {
     firstName: {
       type: String,
@@ -37,7 +38,8 @@ const clientSchema = new mongoose.Schema(
       type: String,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
+
 );
 
 module.exports = mongoose.model("Client", clientSchema);
