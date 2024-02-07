@@ -1,11 +1,11 @@
 const express = require("express");
-const SupplierController =
-  require("../../controllers/Suppliers/SupplierController");
+const SupplierController = require("../../controllers/Suppliers/SupplierController");
 
 const router = express.Router();
 
 // Authentication routes
 router.get("/suppliers", SupplierController.getSupplier);
+router.get("/suppliers/:id", SupplierController.getOneSupplier);
 router.post("/suppliers", SupplierController.createSupplier);
 router.delete("/suppliers/:id", SupplierController.deleteSupplier);
 router.put("/suppliers/status/:id", SupplierController.toggleStatus);

@@ -14,12 +14,12 @@ class ClientController {
       date,
       sells,
       total,
-      status ,
+      status,
       startDate,
       endDate,
     } = req.query;
     const query = {};
-  
+
     try {
       if (fullName !== undefined) {
         const trimmedSearch = fullName.trim();
@@ -84,7 +84,9 @@ class ClientController {
         query.status = status;
       }
 
-      const clients = await Client.find(query).sort({ createdAt: -1 });
+      const clients = await Client.find(query)
+        .populate("purchases")
+        .sort({ createdAt: -1 });
       if (!clients || clients.length === 0) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
@@ -106,12 +108,20 @@ class ClientController {
   static getClient = async (req, res) => {
     const { clientId } = req.params;
     try {
-      const client = await Client.findById(clientId);
+      const client = await Client.findOne({ _id: clientId }).populate({
+        path: "purchases",
+        populate: {
+          path: "articles",
+          model: "Article", // Make sure this matches the model name for the Article
+        },
+      });
+
       if (!client) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
           .json({ message: "Client not found" });
       }
+
       return res.status(HTTP_STATUS.OK).json(client);
     } catch (error) {
       console.error(error);

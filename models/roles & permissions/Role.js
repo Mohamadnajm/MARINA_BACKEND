@@ -7,7 +7,7 @@ const roleSchema = new mongoose.Schema({
     unique: true,
     trim: true,
   },
-  permission: [
+  permissions: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Permission",

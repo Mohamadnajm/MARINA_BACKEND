@@ -23,23 +23,29 @@ const articleSchema = mongoose.Schema(
       default: 0,
     },
     img: {
-      type: String,
-      default: null,
+      filename: String,
+      originalname: String,
+      fileType: String,
     },
     color: {
       type: mongoose.Types.ObjectId,
       ref: "Color",
       required: true,
     },
+    // category: {
+    //   type: mongoose.Types.ObjectId,
+    //   ref: "Category",
+    //   required: true,
+    // },
     typeArticle: {
       type: String,
       required: true,
     },
-    number: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
+    // countArticle: {
+    //   type: Number,
+    //   required: true,
+    //   default: 0,
+    // },
     catalog: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,

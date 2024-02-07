@@ -24,8 +24,15 @@ const ArticleRoutes = require("./routes/articles/ArticleRoutes");
 const ColorRoutes = require("./routes/colors/ColorRoutes");
 const CatalogRoutes = require("./routes/catalogs/CatalogRoutes");
 const SalesRoutes = require("./routes/sales/SalesRoutes");
-const RoleRoutes = require('./routes/roles/RoleRoutes')
-
+const RoleRoutes = require("./routes/roles/RoleRoutes");
+const CategoriesRoutes = require("./routes/categories/CategoryRoutes");
+const TechniciensRoutes = require("./routes/techniciens/TechniciensRoutes");
+const RepairsRoutes = require("./routes/repairs/RepairsRoutes");
+const EnsemblesRoutes = require("./routes/ensembles/EnsembleRoutes");
+const EnsemblesCategoryRoutes = require("./routes/ensembleCategories/EnsembleCategoryRoutes");
+const PermissionRoutes = require("./routes/permissions/PermissionRoutes");
+const StockRoutes = require("./routes/stock/StockRoutes");
+const path = require("path");
 // Enable CORS for specified origins and methods
 const AllowedOrigins = require("./utils/AllowedOrigins");
 app.use(
@@ -37,7 +44,7 @@ app.use(
   })
 );
 
-// Set up routes
+// Setup routes
 const routes = [
   AuthRoutes,
   ArticleRoutes,
@@ -47,8 +54,17 @@ const routes = [
   ColorRoutes,
   CatalogRoutes,
   SalesRoutes,
-  RoleRoutes
+  RoleRoutes,
+  CategoriesRoutes,
+  TechniciensRoutes,
+  RepairsRoutes,
+  EnsemblesRoutes,
+  EnsemblesCategoryRoutes,
+  PermissionRoutes,
+  StockRoutes,
 ];
+
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Prefix all routes with "/api"
 routes.forEach((route) => {

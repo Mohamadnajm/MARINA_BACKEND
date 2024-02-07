@@ -86,7 +86,6 @@ class UserController {
       if (role !== undefined) {
       query.role = role;
     }
-    console.log( {fullName , search })
       
   
       const users = await User.find(query).populate("role");

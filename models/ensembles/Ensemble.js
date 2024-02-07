@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
-const catalogSchema = mongoose.Schema(
+
+const ensemblesSchema = new mongoose.Schema(
   {
     status: {
       type: Boolean,
@@ -9,18 +10,17 @@ const catalogSchema = mongoose.Schema(
     name: {
       type: String,
       required: true,
-      unique: true,
-      trim: true,
     },
     description: {
       type: String,
       required: true,
     },
-    img: {
-      filename: String,
-      originalname: String,
-      fileType: String, 
+    creator: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
+
     articles: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -32,4 +32,4 @@ const catalogSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Catalog", catalogSchema);
+module.exports = mongoose.model("Ensemble", ensemblesSchema);

@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
 const clientSchema = new mongoose.Schema(
-  
   {
     firstName: {
       type: String,
@@ -37,9 +36,20 @@ const clientSchema = new mongoose.Schema(
     address: {
       type: String,
     },
+    purchases: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Sale",
+        required: true,
+      },
+    ],
+    total: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
   },
-  { timestamps: true },
-
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Client", clientSchema);

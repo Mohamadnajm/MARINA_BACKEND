@@ -82,11 +82,9 @@ salesSchema.methods.updatePayments = async function () {
     (total, payment) => total + payment.amount,
     0
   );
-
   // Update the paid and notPaid fields
   this.paid = totalPayments;
   this.notPaid = this.total - totalPayments;
-
   // Save the updated document
   await this.save();
 };

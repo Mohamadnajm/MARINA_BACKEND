@@ -1,41 +1,55 @@
 const Catalog = require("../../models/catalogs/Catalog");
-
+const fs = require("fs");
 const HTTP_STATUS = require("../../utils/HTTP");
 
 class CatalogController {
-  
   // Get All Catalogs
   static getCatalogs = async (req, res) => {
-    const { search, nombreArticles } = req.query;
+    const { FullName, search, nombreArticles, startDate, endDate } = req.query;
+
     const query = {};
-  
     try {
-      if (search !=undefined) {
+      if (FullName != undefined) {
+        query.name = { $regex: new RegExp(FullName, "i") };
+      }
+
+      if (search != undefined) {
         query.name = { $regex: new RegExp(search, "i") };
       }
-  
-      let catalogs = await Catalog.find(query).sort({createdAt : -1});
-  
+
+      if (startDate !== undefined && endDate !== undefined) {
+        const parsedStartDate = new Date(startDate);
+        const parsedEndDate = new Date(endDate);
+        parsedEndDate.setDate(parsedEndDate.getDate() + 1); // End date is inclusive
+
+        query.createdAt = {
+          $gte: parsedStartDate,
+          $lt: parsedEndDate,
+        };
+      }
+
+      let catalogs = await Catalog.find(query).sort({ createdAt: -1 });
+
       if (!catalogs || catalogs.length === 0) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
           .json({ message: "No catalogs were found" });
       }
-  
+
       catalogs = await Promise.all(
         catalogs.map(async (catalog) => {
           const numberArticles = catalog.articles.length;
           return { ...catalog.toObject(), numberArticles };
         })
       );
-  
-      if (nombreArticles!=undefined) {
+
+      if (nombreArticles != undefined) {
         const filteredCatalogs = catalogs.filter(
           (catalog) => catalog.numberArticles === parseInt(nombreArticles)
         );
         catalogs = filteredCatalogs;
       }
-  
+
       res.status(HTTP_STATUS.OK).json({ catalogs });
     } catch (error) {
       console.error(error);
@@ -44,8 +58,7 @@ class CatalogController {
       });
     }
   };
-  
-  
+
   // Get One Catalog
   static getCatalog = async (req, res) => {
     const { catalogId } = req.params;
@@ -70,6 +83,7 @@ class CatalogController {
   // Add catallog
   static createCatalog = async (req, res) => {
     const { status, name, description, img } = req.body;
+
     try {
       //check fro missing fields
       if (!name || !description) {
@@ -85,7 +99,26 @@ class CatalogController {
           .json({ message: "Catalog already exists" });
       }
 
-      const newCatalog = new Catalog({ status, name, description });
+      // if (!filename || !originalname || !fileType) {
+      //   return res
+      //     .status(HTTP_STATUS.BAD_REQUEST)
+      //     .json({ message: "Please upload a catalog image " });
+      // }
+
+      const newCatalog = new Catalog({
+        status,
+        name,
+        description,
+      });
+      if (req.file) {
+        const { filename, originalname, fileType } = req.file;
+        if (!filename || !originalname || !fileType) {
+          return res
+            .status(HTTP_STATUS.BAD_REQUEST)
+            .json({ message: "Invalid image !" });
+        }
+        newCatalog.img = { filename, originalname, fileType };
+      }
       await newCatalog.save();
 
       return res
@@ -102,20 +135,31 @@ class CatalogController {
   // Edit Catalog
   static updateCatalog = async (req, res) => {
     const { catalogId } = req.params;
-    const { name, description , status } = req.body;
+    const { name, description, status } = req.body;
 
     try {
       // Use findByIdAndUpdate to update the existing Catalog
-      const updatedCatalog = await Catalog.findByIdAndUpdate(
-        catalogId,
-        {
-          name,
-          description,
-          status
-        },
-        { new: true }
-      );
+      const updatedCatalog = await Catalog.findOne({ _id: catalogId });
 
+      updatedCatalog.name = name;
+      updatedCatalog.description = description;
+      updatedCatalog.status = status;
+
+      if (req.file) {
+        const { filename, originalname, fileType } = req.file;
+        if (!filename || !originalname || !fileType) {
+          return res
+            .status(HTTP_STATUS.BAD_REQUEST)
+            .json({ message: "Invalid image !" });
+        }
+        const catalog = await Catalog.findOne({ _id: catalogId });
+        const filePath = `./uploads/catalogs/${catalog.img.filename}`;
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        updatedCatalog.img = { filename, originalname, fileType };
+      }
+      updatedCatalog.save();
       if (!updatedCatalog) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
@@ -139,7 +183,6 @@ class CatalogController {
     const { catalogId } = req.params;
     try {
       const catalog = await Catalog.findOne({ _id: catalogId });
-      console.log("hhhhhhhhhhhhhhhh", catalog);
       if (!catalog) {
         res
           .status(HTTP_STATUS.NOT_FOUND)
@@ -177,6 +220,10 @@ class CatalogController {
           .json({ message: "Catalog not found" });
       }
 
+      const filePath = `./uploads/catalogs/${deletedCatalog.img.filename}`;
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
       return res
         .status(HTTP_STATUS.OK)
         .json({ message: "Catalog deleted successfully " });

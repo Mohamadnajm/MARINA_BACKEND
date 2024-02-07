@@ -1,5 +1,7 @@
+const Achat = require("../../models/achat/Achat");
 const Supplier = require("../../models/suppliers/Supplier");
 const HTTP_STATUS = require("../../utils/HTTP");
+
 class SupplierController {
   // Get Suppliers
   static getSupplier = async (req, res) => {
@@ -78,13 +80,15 @@ class SupplierController {
       if (status !== undefined) {
         query.status = status;
       }
-      const suppliers = await Supplier.find(query).sort({ createdAt: -1 });
+      const suppliers = await Supplier.find(query)
+        .sort({ createdAt: -1 })
+        .populate("articles");
       if (!suppliers || suppliers.length === 0) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
           .json({ message: "No suppliers were found" });
       }
-      return res.status(HTTP_STATUS.OK).json( suppliers );
+      return res.status(HTTP_STATUS.OK).json(suppliers);
     } catch (error) {
       console.error(error);
       res
@@ -92,6 +96,55 @@ class SupplierController {
         .json({ message: "Internal Server Error" });
     }
   };
+
+  // Get One Supplier
+  static getOneSupplier = async (req, res) => {
+    const { id } = req.params;
+    try {
+      const supplier = await Supplier.findOne({ _id: id });
+      if (!supplier) {
+        return res
+          .status(HTTP_STATUS.NOT_FOUND)
+          .json({ message: "Supplier not found" });
+      }
+      const SelectedSupplierAchats = await Achat.find({
+        supplier: id,
+      }).populate("article");
+      
+      let totalPurchases = 0;
+      SelectedSupplierAchats.forEach((achat) => {
+        totalPurchases += achat.total || 0;
+      });
+      supplier.totalPayment = totalPurchases;
+      await supplier.save();
+      return res
+        .status(HTTP_STATUS.OK)
+        .json({ supplier: supplier, SelectedSupplierAchats });
+    } catch (error) {
+      console.log(error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error });
+    }
+  };
+
+  // static getAchatPerSupplier = async (req, res) => {
+  //   const { id } = req.params;
+  //   try {
+  //     const supplier = Supplier.find(id);
+  //     if (!supplier) {
+  //       return res
+  //         .status(HTTP_STATUS.NOT_FOUND)
+  //         .json({ message: "No supplier was found" });
+  //     }
+  //     const SelectedSupplierAchats = Achat.find({ supplier: id });
+  //     console.log(SelectedSupplierAchats);
+  //     return res.status(HTTP_STATUS.OK).json(SelectedSupplierAchats);
+  //   } catch (error) {
+  //     console.error(error);
+  //     res
+  //       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+  //       .json({ message: "Internal Server Error" });
+  //   }
+  // };
 
   // Add Supplier
   static createSupplier = async (req, res) => {
@@ -151,31 +204,40 @@ class SupplierController {
     }
   };
 
+  //       // Validate client
+  // const article = await Article.findOne({ _id: articleId });
+  //   if (!article) {
+  //     return res
+  //       .status(HTTP_STATUS.NOT_FOUND)
+  //       .json({ message: `Article with ID ${articleId} not found` });
+  //   }
+
+  //   const ref = await GenerateSalesReference();
+
   // Update Supplier
   static updateSupplier = async (req, res) => {
     const supplierId = req.params.id; // Assuming the supplier ID is passed as a route parameter
     const updateData = req.body; // Assuming the updated data is sent in the request body
 
     try {
-      if(updateData) {
+      if (updateData) {
         const supplier = await Supplier.findOne({ _id: supplierId });
         if (!supplier) {
           return res
             .status(HTTP_STATUS.NOT_FOUND)
             .json({ message: "Supplier not found" });
         }
-  
+
         // Update the supplier with the new data
         await Supplier.findByIdAndUpdate(supplierId, updateData);
-  
+
         res
           .status(HTTP_STATUS.OK)
           .json({ message: "Supplier updated successfully" });
-      }
-      else{
+      } else {
         res
-        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-        .json({ message: "Missing Fields" });
+          .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+          .json({ message: "Missing Fields" });
       }
     } catch (error) {
       console.error(error);
