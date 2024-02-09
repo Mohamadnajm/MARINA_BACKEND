@@ -8,7 +8,7 @@ const HTTP_STATUS = require("../../utils/HTTP");
 const GenerateSalesReference = require("./SalesRefsGenerator");
 
 class SalesController {
-  //get All Sales
+  // Get All Sales
   static getAllSales = async (req, res) => {
     const {
       search,
@@ -22,6 +22,7 @@ class SalesController {
       endDate,
     } = req.query;
     const query = {};
+
     try {
       if (search != undefined) {
         query.ref = { $regex: new RegExp(search, "i") };
@@ -38,14 +39,6 @@ class SalesController {
       if (status != undefined) {
         query.status = { $regex: new RegExp(status, "i") };
       }
-
-      // if (date != undefined) {
-      //   const parsedDate = new Date(date);
-
-      //   query.createdAt = {
-      //     parsedDate,
-      //   };
-      // }
 
       if (weight != undefined) {
         query.totalWeight = weight;
@@ -66,19 +59,24 @@ class SalesController {
         };
       }
 
-      const sales = await Sale.find(query)
+      const sales = await Sale.find(query).sort({createdAt : -1})
         .populate({
           path: "articles",
           populate: {
-            path: "color", // specify the field to populate
-            model: "Color", // specify the model to use for populating the 'color' field
+            path: "article", // Populate the 'article' field inside the 'articles' array
+            model: "Article",
+            populate: {
+              path: "color", // Populate the 'color' field inside the 'article' object
+              model: "Color",
+            },
           },
         })
         .populate("client");
+
       if (!sales) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
-          .json({ message: "No sale were found" });
+          .json({ message: "No sales were found" });
       }
 
       return res.status(HTTP_STATUS.OK).json({ sales });
@@ -92,13 +90,19 @@ class SalesController {
   static getOneSale = async (req, res) => {
     const { saleId } = req.params;
     try {
-      const sale = await Sale.findOne({ _id: saleId }).populate({
-        path: "articles",
-        populate: {
-          path: "color", // specify the field to populate
-          model: "Color", // specify the model to use for populating the 'color' field
-        },
-      }).populate('client')
+      const sale = await Sale.findOne({ _id: saleId })
+        .populate({
+          path: "articles",
+          populate: {
+            path: "article", // Populate the 'article' field inside the 'articles' array
+            model: "Article",
+            populate: {
+              path: "color", // Populate the 'color' field inside the 'article' object
+              model: "Color",
+            },
+          },
+        })
+        .populate("client");
       if (!sale) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
@@ -115,10 +119,10 @@ class SalesController {
   //Create Sale
   static createSale = async (req, res) => {
     try {
-      const { description, articles, clientId, date, total, qtes } = req.body;
+      const { description, clientId, date, total, qtes } = req.body;
 
       const parsedQtes = JSON.parse(qtes);
-      console.log(parsedQtes);
+
       let indexOfInvalidQte = -1;
 
       for (let i = 0; i < parsedQtes.length; i++) {
@@ -131,11 +135,13 @@ class SalesController {
 
       if (indexOfInvalidQte !== -1) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
-          message: `Please choose a valid quantity fot item ${
+          message: `Please choose a valid quantity for item ${
             indexOfInvalidQte + 1
           }`,
         });
       }
+
+      const selectedArticles = [];
 
       for (const qte of parsedQtes) {
         const articleInStock = await Stock.findOne({
@@ -150,17 +156,14 @@ class SalesController {
 
         if (qte.qte > articleInStock.stock) {
           return res.status(HTTP_STATUS.NOT_FOUND).json({
-            message: `Requested quantity exceeds available stock for the article : ${articleInStock?.article?.name}`,
+            message: `Requested quantity exceeds available stock for the article: ${articleInStock?.article?.name}`,
           });
         }
 
-        articleInStock.stock -= qte.qte;
-        await articleInStock.save();
+        selectedArticles.push({ article: qte.article, quantity: qte.qte });
       }
 
-      const parsedArticles = JSON.parse(articles);
-
-      if (!parsedArticles || parsedArticles.length === 0) {
+      if (!selectedArticles || selectedArticles.length === 0) {
         return res
           .status(HTTP_STATUS.BAD_REQUEST)
           .json({ message: "Cannot create a Sale with no Articles" });
@@ -168,18 +171,15 @@ class SalesController {
 
       let totalWeight = 0;
 
-      const selectedArticles = [];
-
-      for (const articleId of parsedArticles) {
-        const article = await Article.findOne({ _id: articleId });
+      for (const articleId of selectedArticles) {
+        const article = await Article.findOne({ _id: articleId.article });
 
         if (!article) {
-          return res
-            .status(HTTP_STATUS.NOT_FOUND)
-            .json({ message: `Article with ID ${articleId} not found` });
+          return res.status(HTTP_STATUS.NOT_FOUND).json({
+            message: `Article with ID ${articleId.article} not found`,
+          });
         }
 
-        selectedArticles.push(article._id);
         totalWeight += article.weight;
       }
 
@@ -201,7 +201,6 @@ class SalesController {
         total,
         totalWeight,
         date,
-        total,
         notPaid: total,
       });
 
@@ -228,8 +227,10 @@ class SalesController {
   //update Sale
   static updateSale = async (req, res) => {
     const { saleId } = req.params;
-    const { status, date, client, description, articles, paiementData, total } =
-      req.body;
+    const { status, date, client, description, total, qtes } = req.body;
+
+    const qtesArray = JSON.parse(qtes);
+
     try {
       const sale = await Sale.findById(saleId);
       if (!sale) {
@@ -237,37 +238,28 @@ class SalesController {
           .status(HTTP_STATUS.NOT_FOUND)
           .json({ message: "Sale not found" });
       }
-      const parsedArticles = JSON.parse(articles);
-      if (!parsedArticles || parsedArticles.length === 0) {
-        return res
-          .status(HTTP_STATUS.BAD_REQUEST)
-          .json({ message: "Cannot create a Sale with no Articles" });
-      }
 
       let totalWeight = 0;
+      const articlesToUpdate = [];
 
-      const selectedArticles = [];
-      for (const articleId of parsedArticles) {
-        const article = await Article.findOne({ _id: articleId });
-        if (!article) {
+      // Iterate through qtes array to update articles and calculate totalWeight
+      for (const { article, qte } of qtesArray) {
+        if (qte <= 0) {
+          return res
+            .status(HTTP_STATUS.BAD_REQUEST)
+            .json({ message: "Please enter a valid quantity" });
+        }
+        const existingArticle = await Article.findById(article);
+        if (!existingArticle) {
           return res
             .status(HTTP_STATUS.NOT_FOUND)
-            .json({ message: `Article with ID ${articleId} not found` });
+            .json({ message: `Article with ID ${article} not found` });
         }
-        selectedArticles.push(article._id);
-        totalWeight += article.weight;
-      }
-      for (const articleId of selectedArticles) {
-        await Article.findByIdAndDelete(articleId);
+
+        articlesToUpdate.push({ article, quantity: qte });
+        totalWeight += existingArticle.weight;
       }
 
-      const totalPaymentAmount = paiementData?.reduce(
-        (acc, payment) => acc + Number(payment.amount),
-        0
-      );
-
-      // Calculate notPaid amount
-      const notPaidAmount = Number(total) - Number(totalPaymentAmount);
       const updatedSale = await Sale.findByIdAndUpdate(
         saleId,
         {
@@ -275,15 +267,37 @@ class SalesController {
           description,
           date,
           client,
-          articles: selectedArticles,
+          articles: articlesToUpdate, // Update articles array with new data
           total,
           totalWeight,
-          $set: { payment: paiementData },
-          paid: totalPaymentAmount, // Set the paid amount
-          notPaid: notPaidAmount, // Set the notPaid amount
         },
         { new: true }
       );
+
+      if (qtes && status === "Done") {
+        for (const qte of qtesArray) {
+          const articleInStock = await Stock.findOne({
+            article: qte.article,
+          }).populate("article");
+
+          if (!articleInStock) {
+            return res
+              .status(HTTP_STATUS.NOT_FOUND)
+              .json({ message: "Article not in stock" });
+          }
+
+          if (qte.qte > articleInStock.stock) {
+            return res.status(HTTP_STATUS.NOT_FOUND).json({
+              message: `Requested quantity exceeds available stock for the article: ${articleInStock?.article?.name}`,
+            });
+          }
+
+          articleInStock.stock -= qte.qte;
+          await articleInStock.save();
+        }
+      }
+
+      updatedSale.updatePayments();
 
       if (!updatedSale) {
         return res
@@ -297,7 +311,9 @@ class SalesController {
       });
     } catch (error) {
       console.error(error);
-      console.error("error");
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal server error" });
     }
   };
 
@@ -319,7 +335,7 @@ class SalesController {
   };
 
   static verifyQte = async (req, res) => {
-    const { qtes } = req.body; 
+    const { qtes } = req.body;
 
     try {
       // Create an array to store the results
@@ -365,11 +381,11 @@ class SalesController {
   //----- Payments ----------------------------------------------------------
   //add Payments for sales
   static addPayment = async (req, res) => {
-    const { method, amount, date } = req.body;
+    const { method, amount, description, date } = req.body;
     const { saleId } = req.params;
 
     try {
-      if (!method || !amount || !date) {
+      if (!method || !amount || !date || !description) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           message: "Please fill all the fields",
         });
@@ -384,7 +400,7 @@ class SalesController {
 
       if (amount <= sale.notPaid) {
         // Update the payment array of the sale
-        sale.payment.push({ method, amount, date });
+        sale.payment.push({ method, amount, description, date });
 
         // calling the updatePayments method in Sale model to save() and to update payments
         sale.updatePayments();
@@ -407,11 +423,11 @@ class SalesController {
 
   //edit Payment
   static editPayment = async (req, res) => {
-    const { method, amount, date } = req.body;
+    const { method, amount, description, date } = req.body;
     const { saleId, paymentId } = req.params;
 
     try {
-      if (!method || !amount || !date) {
+      if (!method || !amount || !date || !description) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           message: "Please fill all the fields",
         });
@@ -435,11 +451,12 @@ class SalesController {
           ...sale.payment[paymentIndex],
           method,
           amount,
+          description,
           date,
         };
 
-        // Save the updated document
-        await sale.save();
+        // calling the updatePayments method in Sale model to save() and to update payments
+        sale.updatePayments();
 
         res
           .status(HTTP_STATUS.OK)
@@ -478,8 +495,8 @@ class SalesController {
         // Remove the payment from the array
         sale.payment.splice(paymentIndex, 1);
 
-        // Save the updated document
-        await sale.save();
+        // calling the updatePayments method in Sale model to save() and to update payments
+        sale.updatePayments();
 
         res
           .status(HTTP_STATUS.OK)

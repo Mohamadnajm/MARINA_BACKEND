@@ -84,6 +84,10 @@ class ClientController {
         query.status = status;
       }
 
+      if (sells !== undefined) {
+        query.purchases = { $size: parseInt(sells) };
+      }
+
       const clients = await Client.find(query)
         .populate("purchases")
         .sort({ createdAt: -1 });

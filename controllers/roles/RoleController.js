@@ -41,8 +41,6 @@ class RoleController {
   //Add role
   static addRoles = async (req, res) => {
     const { roleName, permissions } = req.body;
-
-    console.log(req.body);
     try {
       // Check if roleName is provided
       if (!roleName) {
@@ -62,6 +60,14 @@ class RoleController {
           .json({ message: "Please provide valid permissions" });
       }
 
+      // Check if roleName already exists
+      const existingRole = await Role.findOne({ roleName });
+      if (existingRole) {
+        return res
+          .status(HTTP_STATUS.CONFLICT)
+          .json({ message: "Role with the provided name already exists" });
+      }
+
       // Check if each permission ID provided in the permissions array is valid
       const invalidPermissions = await Permission.find({
         _id: { $in: permissions },
@@ -72,7 +78,7 @@ class RoleController {
           .json({ message: "One or more permissions are invalid" });
       }
 
-      // If all permissions IDs are valid, create a new role
+      // If all checks pass, create a new role
       const newRole = new Role({
         roleName: roleName,
         permissions,
@@ -93,9 +99,9 @@ class RoleController {
   // Update Role
   static updateRole = async (req, res) => {
     const { roleId } = req.params;
-    const { name, permissions } = req.body;
+    const { roleName, permissions } = req.body;
     try {
-      if (!name || !permissions || !Array.isArray(permissions)) {
+      if (!roleName || !permissions || !Array.isArray(permissions)) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           message:
             "Please provide a role name and a valid array of permissions",
@@ -119,7 +125,10 @@ class RoleController {
 
       const updatedRole = await Role.findByIdAndUpdate(
         roleId,
-        { roleName: name, permissions },
+        {
+          roleName,
+          permissions,
+        },
         { new: true }
       );
       if (!updatedRole) {

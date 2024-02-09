@@ -7,7 +7,7 @@ const router = express.Router()
 router.get("/repairs", RepairsController.getAllRepairs)
 router.get("/repairs/:repairId", RepairsController.getOneRepair)
 router.post("/repairs", RepairsController.createRepair)
-router.put("/repairs", RepairsController.updateRepair)
+router.put("/repairs/:repairId", RepairsController.updateRepair)
 router.delete("/repairs/:repairId", RepairsController.deleteRepair)
 
 

@@ -27,9 +27,10 @@ function getDestinationPath(requestPath) {
       return path.resolve(__dirname, "../../uploads/catalogs");
     case "articles":
       return path.resolve(__dirname, "../../uploads/articles");
+    case "ensembles":
+      return path.resolve(__dirname, "../../uploads/ensembles");
     default:
-      // Default destination if no specific path is matched
-      return path.resolve(__dirname, "../uploads/default");
+      return path.resolve(__dirname, "../../uploads/default");
   }
 }
 

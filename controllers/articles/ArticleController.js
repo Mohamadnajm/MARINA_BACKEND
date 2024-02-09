@@ -262,7 +262,6 @@ class ArticleController {
       description,
       weight,
       color,
-      typeArticle,
       number,
       catalog,
       supplier,
@@ -297,7 +296,6 @@ class ArticleController {
         }
         article.color = selectedColor._id;
       }
-      if (typeArticle) article.typeArticle = typeArticle;
       if (number) article.countArticle = number;
       if (catalog) {
         // Find the selected catalog
@@ -450,10 +448,6 @@ class ArticleController {
       const filePath = `./uploads/articles/${article.img.filename}`;
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
-      } else {
-        return res
-          .status(HTTP_STATUS.NOT_FOUND)
-          .json({ message: "File not found" });
       }
 
       res

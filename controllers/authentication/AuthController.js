@@ -69,8 +69,12 @@ class AuthController {
   };
   // Login
   static login = async (req, res) => {
-    const { identity, password } = req.body;
-
+    let { identity, password } = req.body;
+    
+    // Trim the identity
+    identity = identity.trim();
+    identity = identity.toLowerCase();
+    
     if (!identity || !password) {
       return res
         .status(HTTP_STATUS.BAD_REQUEST)

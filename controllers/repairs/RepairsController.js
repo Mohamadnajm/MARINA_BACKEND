@@ -25,7 +25,9 @@ class RepairsController {
   static getOneRepair = async (req, res) => {
     const { repairId } = req.params;
     try {
-      const repair = await Repair.findOne({ _id: repairId }).populate("client");
+      const repair = await Repair.findOne({ _id: repairId }).populate(
+        "client technicien repairedArticles.color"
+      );
       if (!repair) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
@@ -42,6 +44,7 @@ class RepairsController {
   //create a Repair
   static createRepair = async (req, res) => {
     const { technicien, client, repairedArticles, totalCost } = req.body;
+    console.log(req.body);
     let VerifiedArticles = [];
     let price = 0;
 
@@ -88,15 +91,17 @@ class RepairsController {
 
   //update a Repair
   static updateRepair = async (req, res) => {
-    const { repairId, technicien, articles, phone } = req.body;
-
+    const { repairId } = req.params;
+    const { technicien, repairedArticles, client, price, status } = req.body;
+    console.log(req.body);
     try {
       if (
         !repairId ||
         !technicien ||
-        !articles ||
-        articles.length === 0 ||
-        !phone
+        !repairedArticles ||
+        repairedArticles.length < 1 ||
+        !client ||
+        !price
       ) {
         return res
           .status(HTTP_STATUS.BAD_REQUEST)
@@ -117,21 +122,11 @@ class RepairsController {
           .json({ message: "Technicien not found" });
       }
 
-      let VerifiedArticles = [];
-      let price = 0;
-
-      for (const articleId of articles) {
-        const article = await Article.findOne({ _id: articleId });
-        if (article) {
-          price += article.buyPrice;
-          VerifiedArticles.push(article._id);
-        }
-      }
-
-      // Update the existing repair with new data
-      existingRepair.articles = VerifiedArticles;
+      existingRepair.repairedArticles = repairedArticles;
       existingRepair.technicien = selectedTechnicien._id;
-      existingRepair.phone = phone;
+      existingRepair.client = client;
+      existingRepair.price = price;
+      existingRepair.status = status;
 
       // Save the updated repair
       await existingRepair.save();

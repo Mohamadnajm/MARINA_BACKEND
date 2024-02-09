@@ -28,6 +28,11 @@ const ensemblesSchema = new mongoose.Schema(
         required: true,
       },
     ],
+    img: {
+      filename: String,
+      originalname: String,
+      fileType: String,
+    },
   },
   { timestamps: true }
 );

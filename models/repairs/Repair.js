@@ -17,10 +17,33 @@ const repairSchema = new mongoose.Schema(
       required: true,
       ref: "Client",
     },
-    repairedArticles: {
-      type: [mongoose.Schema.Types.Mixed], // Array of Mixed type
-      required: true,
-    },
+    repairedArticles: [
+      {
+        color: {
+          type: mongoose.Types.ObjectId,
+          ref: "Color",
+          required: true,
+        },
+        typeArticle: {
+          type: String,
+          required: true,
+        },
+        weight: {
+          type: Number,
+          required: true,
+          default: 0,
+        },
+        cost: {
+          type: Number,
+          required: true,
+          default: 0,
+        },
+        barCode: {
+          type: Number,
+          required: true,
+        },
+      },
+    ],
     price: {
       type: Number,
       required: true,

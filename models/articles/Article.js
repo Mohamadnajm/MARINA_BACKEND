@@ -32,20 +32,10 @@ const articleSchema = mongoose.Schema(
       ref: "Color",
       required: true,
     },
-    // category: {
-    //   type: mongoose.Types.ObjectId,
-    //   ref: "Category",
-    //   required: true,
-    // },
     typeArticle: {
       type: String,
       required: true,
     },
-    // countArticle: {
-    //   type: Number,
-    //   required: true,
-    //   default: 0,
-    // },
     catalog: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
@@ -53,7 +43,7 @@ const articleSchema = mongoose.Schema(
     },
     supplier: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Supplier",
+      ref: "Supplier", // Make sure this matches the name used when defining the Supplier model
       required: true,
     },
     sellPrice: {
@@ -80,13 +70,6 @@ const articleSchema = mongoose.Schema(
       required: true,
       default: Date.now,
     },
-    // idBase: {
-    //   type: String,
-    //   trim: true,
-    // },
-    // cout: {
-    //   type: Number,
-    // },
   },
   { timestamps: true }
 );

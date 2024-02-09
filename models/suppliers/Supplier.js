@@ -36,10 +36,11 @@ const supplierSchema = new Schema(
     articles: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Article",
+        ref: "Article", // This references the "Article" model
         required: true,
       },
     ],
+    
     totalPayment: {
       type: Number,
       required: true,

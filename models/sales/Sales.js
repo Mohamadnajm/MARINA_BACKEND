@@ -18,9 +18,16 @@ const salesSchema = new mongoose.Schema(
     },
     articles: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Article",
-        required: true,
+        article: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Article",
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          default: 0,
+        },
       },
     ],
     client: {
@@ -58,6 +65,11 @@ const salesSchema = new mongoose.Schema(
           type: Number,
           required: true,
           default: 0,
+        },
+        description: {
+          type: String,
+          required: false,
+          default: "",
         },
         date: {
           type: Date,

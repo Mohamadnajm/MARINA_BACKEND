@@ -80,9 +80,16 @@ class SupplierController {
       if (status !== undefined) {
         query.status = status;
       }
-      const suppliers = await Supplier.find(query)
-        .sort({ createdAt: -1 })
-        .populate("articles");
+
+      if (article !== undefined) {
+        query.articles = { $size: parseInt(article) };
+      }
+
+      if (total !== undefined) {
+        query.totalPayment = total;
+      }
+
+      const suppliers = await Supplier.find(query).sort({ createdAt: -1 });
       if (!suppliers || suppliers.length === 0) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
@@ -110,7 +117,7 @@ class SupplierController {
       const SelectedSupplierAchats = await Achat.find({
         supplier: id,
       }).populate("article");
-      
+
       let totalPurchases = 0;
       SelectedSupplierAchats.forEach((achat) => {
         totalPurchases += achat.total || 0;
