@@ -6,69 +6,57 @@ const Role = require("../../models/roles & permissions/Role");
 class UserController {
   // Get All Users
   static getUsers = async (req, res) => {
-    const { fullName , search , phone , date , role , startDate , endDate} = req.query;
+    const { fullName, search, phone, date, role, startDate, endDate } =
+      req.query;
     const query = {};
     try {
-      if (fullName !== undefined ) {
+      if (fullName !== undefined) {
         const trimmedSearch = fullName.trim();
-        const [firstNameSearch, lastNameSearch] = trimmedSearch.split(' ');
-  
+        const [firstNameSearch, lastNameSearch] = trimmedSearch.split(" ");
+
         const nameRegex = new RegExp(firstNameSearch, "i");
         const lastNameRegex = new RegExp(lastNameSearch, "i");
-  
+
         query.$or = [
           {
-            $and: [
-              { firstName: nameRegex },
-              { lastName: lastNameRegex }
-            ]
+            $and: [{ firstName: nameRegex }, { lastName: lastNameRegex }],
           },
           {
-            $and: [
-              { firstName: lastNameRegex },
-              { lastName: nameRegex }
-            ]
-          }
-        ];
-      }
- 
-      if (search !== undefined ) {
-        const trimmedSearch = search.trim();
-        const [firstNameSearch, lastNameSearch] = trimmedSearch.split(' ');
-  
-        const nameRegex = new RegExp(firstNameSearch, 'i');
-        const lastNameRegex = new RegExp(lastNameSearch, 'i');
-  
-        query.$or = [
-          {
-            $and: [
-              { firstName: nameRegex },
-              { lastName: lastNameRegex },
-            ],
+            $and: [{ firstName: lastNameRegex }, { lastName: nameRegex }],
           },
-          {
-            $and: [
-              { firstName: lastNameRegex },
-              { lastName: nameRegex },
-            ],
-          },
-          { phone: { $regex: new RegExp(trimmedSearch, 'i') } },
-          
         ];
       }
 
-      if (phone !=undefined) {
+      if (search !== undefined) {
+        const trimmedSearch = search.trim();
+        const [firstNameSearch, lastNameSearch] = trimmedSearch.split(" ");
+
+        const nameRegex = new RegExp(firstNameSearch, "i");
+        const lastNameRegex = new RegExp(lastNameSearch, "i");
+
+        query.$or = [
+          {
+            $and: [{ firstName: nameRegex }, { lastName: lastNameRegex }],
+          },
+          {
+            $and: [{ firstName: lastNameRegex }, { lastName: nameRegex }],
+          },
+          { phone: { $regex: new RegExp(trimmedSearch, "i") } },
+        ];
+      }
+
+      if (phone != undefined) {
         query.phone = { $regex: new RegExp(phone, "i") };
       }
 
-      if (date !== undefined ) {
+      if (date !== undefined) {
         const parsedDate = new Date(date);
         const nextDay = new Date(parsedDate);
         nextDay.setDate(parsedDate.getDate() + 1);
-  
+
         query.createdAt = {
           $gte: parsedDate,
-          $lt: nextDay,  
+          $lt: nextDay,
         };
       }
 
@@ -76,18 +64,17 @@ class UserController {
         const parsedStartDate = new Date(startDate);
         const parsedEndDate = new Date(endDate);
         parsedEndDate.setDate(parsedEndDate.getDate() + 1); // End date is inclusive
-  
+
         query.createdAt = {
           $gte: parsedStartDate,
-          $lt: parsedEndDate
+          $lt: parsedEndDate,
         };
       }
 
       if (role !== undefined) {
-      query.role = role;
-    }
-      
-  
+        query.role = role;
+      }
+
       const users = await User.find(query).populate("role");
       if (!users) {
         return res
@@ -105,13 +92,16 @@ class UserController {
   static getUser = async (req, res) => {
     const { userId } = req.params;
     try {
-      const user = await User.findOne({ _id: userId }).populate("role");
+      const user = await User.findOne({ _id: userId }).populate({
+        path: "role",
+        populate: { path: "permissions" },
+      });
       if (!user) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
           .json({ message: "User not found" });
       }
-      return res.status(HTTP_STATUS.OK).json({ user: user });
+      return res.status(HTTP_STATUS.OK).json({ user });
     } catch (error) {
       console.log(error);
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error });
