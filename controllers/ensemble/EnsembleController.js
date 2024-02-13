@@ -6,8 +6,49 @@ const fs = require("fs");
 class EnsembleController {
   //get All Ensembles
   static getAllEnsembles = async (req, res) => {
+    const { search, packName, creator, status, date, startDate, endDate } =
+      req.query;
+    const query = {};
     try {
-      const ensembles = await Ensemble.find().populate("creator articles");
+      if (packName != undefined) {
+        query.name = { $regex: new RegExp(packName, "i") };
+      }
+
+      if (search != undefined) {
+        query.name = { $regex: new RegExp(search, "i") };
+      }
+
+      if (date !== undefined) {
+        const parsedDate = new Date(date);
+        const nextDay = new Date(parsedDate);
+        nextDay.setDate(parsedDate.getDate() + 1);
+
+        query.createdAt = {
+          $gte: parsedDate,
+          $lt: nextDay,
+        };
+      }
+
+      if (startDate !== undefined && endDate !== undefined) {
+        const parsedStartDate = new Date(startDate);
+        const parsedEndDate = new Date(endDate);
+        parsedEndDate.setDate(parsedEndDate.getDate() + 1); // End date is inclusive
+
+        query.createdAt = {
+          $gte: parsedStartDate,
+          $lt: parsedEndDate,
+        };
+      }
+
+      if (status !== undefined) {
+        query.status = status;
+      }
+
+      if (creator !== undefined) {
+        query.creator = creator;
+      }
+
+      const ensembles = await Ensemble.find(query).populate("creator articles");
       if (!ensembles) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)

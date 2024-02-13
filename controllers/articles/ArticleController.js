@@ -211,6 +211,8 @@ class ArticleController {
       }
       await newArticle.save();
       selectedSupplier.articles.push(newArticle);
+      const totalCost = buyPrice * countArticle;
+      selectedSupplier.totalPayment += totalCost;
       await selectedSupplier.save();
       selectedCatalog.articles.push(newArticle);
       await selectedCatalog.save();

@@ -3,6 +3,7 @@ const HTTP_STATUS = require("../../utils/HTTP");
 
 const Client = require("../../models/clients/Client");
 const Role = require("../../models/roles & permissions/Role");
+const ExcelJS = require("exceljs");
 
 class ClientController {
   //get all clients
@@ -281,6 +282,126 @@ class ClientController {
       res
         .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
         .json({ message: "Internal Server Error" });
+    }
+  };
+  //************************************************************************************************* */
+
+  // static export = async (req, res) => {
+  //   const clientTab = req.query.tab;
+  //   try {
+  //     let workbook = new ExcelJS.Workbook();
+  //     const sheet = workbook.addWorksheet("clients");
+  //     sheet.columns = [
+  //       { header: "Nom", key: "name", width: 25 },
+  //       { header: "Téléphone", key: "phone", width: 50 },
+  //       { header: "Date de création", key: "date", width: 30 },
+  //       { header: "Achats", key: "achats", width: 20 },
+  //       { header: "Total", key: "total", width: 20 }
+  //     ];
+
+  //     if (clientTab) {
+  //       this.clientToExport.forEach((client) => {
+  //         //   : "";
+  //         const clientName = client.name
+  //           ? `${client.name.profile.firstName} ${client.name.profile.lastName}`
+  //           : "";
+  //         // console.log(clients);
+  //         sheet.addRow({
+  //           name: clientName,
+  //           phone: client.phone,
+  //           date: client.date,
+  //           achats: client.Achats,
+  //           total: client.total
+  //         });
+  //       });
+  //     } else {
+  //       const client = await Client.find({ deletedAt: null })
+  //         .sort({ createdAt: -1 })
+  //         .populate({
+  //           path: "clientDepart clientArriv",
+  //           populate: {
+  //             path: "profile",
+  //             model: "Profile",
+  //           },
+  //         })
+  //         .populate({
+  //           path: "name",
+  //           populate: {
+  //             path: "profile",
+  //             model: "Profile",
+  //           },
+  //         })
+  //         .populate("deviseDepart deviseArriv");
+  //       client.forEach((client) => {
+  //         const clientName = client.name
+  //           ? `${client.name.profile.firstName} ${client.name.profile.lastName}`
+  //           : "";
+  //         // console.log(clients);
+  //         sheet.addRow({
+  //           name: clientName,
+  //           phone: client.phone,
+  //           date: client.date,
+  //           achats: client.Achats,
+  //           total: client.total
+  //           //,
+  //         });
+  //       });
+  //     }
+
+  //     res.setHeader(
+  //       "Content-Type",
+  //       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  //     );
+  //     res.setHeader(
+  //       "Content-Disposition",
+  //       "attachment; filename=Clients.xlsx" // Corrected filename
+  //     );
+
+  //     await workbook.xlsx.write(res);
+  //     res.end();
+  //   } catch (error) {
+  //     console.log(error);
+  //     res.status(500).json({ error: "Internal Server Error" });
+  //   }
+  // };
+  static exportClients = async (req, res) => {
+    try {
+      const clients = await Client.find();
+      // console.log(clients);
+
+      let workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("clients");
+      sheet.columns = [
+        { header: "Nom", key: "name", width: 25 },
+        { header: "Téléphone", key: "phone", width: 50 },
+        { header: "Date de création", key: "date", width: 30 },
+        { header: "Achats", key: "achats", width: 30 },
+        { header: "Total", key: "total", width: 30 },
+        // Add more columns as needed
+      ];
+
+      clients.forEach((client) => {
+        const clientName = `${client?.firstName} ${client?.lastName}`
+        sheet.addRow({
+          name: clientName,
+          phone: client.phone,
+          date: client.createdAt,
+          achats: client.purchases.length,
+          total: client.total,
+        });
+        console.log(client.purchases)
+      });
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader("Content-Disposition", "attachment; filename=Clients.xlsx");
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal Server Error" });
     }
   };
 }

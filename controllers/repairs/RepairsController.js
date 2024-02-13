@@ -6,8 +6,84 @@ const HTTP_STATUS = require("../../utils/HTTP");
 class RepairsController {
   //get All Repairs
   static getAllRepairs = async (req, res) => {
+    const {
+      search,
+      technicien,
+      date,
+      status,
+      repairedArticleCount,
+      cost,
+      startDate,
+      endDate,
+    } = req.query;
+    console.log(req.query);
+    const query = {};
     try {
-      const repairs = await Repair.find().populate("technicien");
+      if (search !== undefined) {
+        const trimmedSearch = search.trim();
+        const [firstNameSearch, lastNameSearch] = trimmedSearch.split(" ");
+
+        // Search for technicians based on first name and last name
+        const technicians = await Technicien.find({
+          $or: [
+            { firstName: new RegExp(firstNameSearch, "i") },
+            { lastName: new RegExp(lastNameSearch, "i") },
+          ],
+        });
+
+        // Extract technician IDs
+        const technicianIds = technicians.map((technician) => technician._id);
+
+        query.technicien = { $in: technicianIds };
+      }
+
+      if (technicien != undefined) {
+        const selectedTechnicien = await Technicien.findOne({
+          _id: technicien,
+        });
+        if (!technicien) {
+          return res
+            .status(HTTP_STATUS.NOT_FOUND)
+            .json({ message: "Technicien not found" });
+        }
+        query.technicien = selectedTechnicien._id;
+      }
+
+      if (date !== undefined) {
+        const parsedDate = new Date(date);
+        const nextDay = new Date(parsedDate);
+        nextDay.setDate(parsedDate.getDate() + 1);
+
+        query.createdAt = {
+          $gte: parsedDate,
+          $lt: nextDay,
+        };
+      }
+
+      if (startDate !== undefined && endDate !== undefined) {
+        const parsedStartDate = new Date(startDate);
+        const parsedEndDate = new Date(endDate);
+        parsedEndDate.setDate(parsedEndDate.getDate() + 1); // End date is inclusive
+
+        query.createdAt = {
+          $gte: parsedStartDate,
+          $lt: parsedEndDate,
+        };
+      }
+
+      if (status !== undefined) {
+        query.status = status;
+      }
+
+      if (cost !== undefined) {
+        query.price = cost;
+      }
+
+      if (repairedArticleCount !== undefined) {
+        query.repairedArticles = { $size: parseInt(repairedArticleCount) };
+      }
+
+      const repairs = await Repair.find(query).populate("technicien");
       if (!repairs) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)

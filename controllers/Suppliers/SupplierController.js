@@ -1,4 +1,5 @@
 const Achat = require("../../models/achat/Achat");
+const Article = require("../../models/articles/Article");
 const Supplier = require("../../models/suppliers/Supplier");
 const HTTP_STATUS = require("../../utils/HTTP");
 
@@ -89,7 +90,9 @@ class SupplierController {
         query.totalPayment = total;
       }
 
-      const suppliers = await Supplier.find(query).sort({ createdAt: -1 });
+      const suppliers = await Supplier.find(query)
+        .sort({ createdAt: -1 })
+        .populate("articles");
       if (!suppliers || suppliers.length === 0) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
@@ -107,16 +110,64 @@ class SupplierController {
   // Get One Supplier
   static getOneSupplier = async (req, res) => {
     const { id } = req.params;
+    const { search, articleName, total, date, startDate, endDate } = req.query;
+    const query = { supplier: id };
     try {
+      if (date !== undefined) {
+        const parsedDate = new Date(date);
+        const nextDay = new Date(parsedDate);
+        nextDay.setDate(parsedDate.getDate() + 1);
+
+        query.createdAt = {
+          $gte: parsedDate,
+          $lt: nextDay,
+        };
+      }
+
+      if (startDate !== undefined && endDate !== undefined) {
+        const parsedStartDate = new Date(startDate);
+        const parsedEndDate = new Date(endDate);
+        parsedEndDate.setDate(parsedEndDate.getDate() + 1); // End date is inclusive
+
+        query.createdAt = {
+          $gte: parsedStartDate,
+          $lt: parsedEndDate,
+        };
+      }
+
+      if (total !== undefined) {
+        query.total = total;
+      }
+
+      if (articleName !== undefined) {
+        const article = await Article.findOne({ name: articleName });
+        if (!article) {
+          return res
+            .status(HTTP_STATUS.NOT_FOUND)
+            .json({ message: "Article not found" });
+        }
+        query.article = article._id;
+      }
+
+      if (search !== undefined) {
+        const article = await Article.findOne({ name: search });
+        if (!article) {
+          return res
+            .status(HTTP_STATUS.NOT_FOUND)
+            .json({ message: "Article not found" });
+        }
+        query.article = article._id;
+      }
+
       const supplier = await Supplier.findOne({ _id: id });
       if (!supplier) {
         return res
           .status(HTTP_STATUS.NOT_FOUND)
           .json({ message: "Supplier not found" });
       }
-      const SelectedSupplierAchats = await Achat.find({
-        supplier: id,
-      }).populate("article");
+      const SelectedSupplierAchats = await Achat.find(query).populate(
+        "article"
+      );
 
       let totalPurchases = 0;
       SelectedSupplierAchats.forEach((achat) => {
